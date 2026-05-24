@@ -1,0 +1,105 @@
+name: Build Android Dev APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_repo:
+        description: "Expo app repository, in owner/repo format"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Validate input
+        shell: bash
+        env:
+          APP_REPO: ${{ inputs.app_repo }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$APP_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "app_repo must use owner/repo format."
+            exit 1
+          fi
+
+      - name: Checkout Expo app
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.app_repo }}
+          token: ${{ secrets.APP_REPO_READ_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Setup Bun
+        if: ${{ hashFiles('bun.lock') != '' }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-cache: true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -f bun.lockb ]; then
+            echo "bun.lockb is not supported. Commit bun.lock instead."
+            exit 1
+          fi
+
+          lockfiles=0
+          [ -f bun.lock ] && lockfiles=$((lockfiles + 1))
+          [ -f pnpm-lock.yaml ] && lockfiles=$((lockfiles + 1))
+          [ -f yarn.lock ] && lockfiles=$((lockfiles + 1))
+          [ -f package-lock.json ] && lockfiles=$((lockfiles + 1))
+
+          if [ "$lockfiles" -ne 1 ]; then
+            echo "Expected exactly one supported lockfile."
+            exit 1
+          fi
+
+          if [ -f bun.lock ]; then
+            bun ci
+          elif [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            corepack enable
+            yarn install --immutable
+          elif [ -f package-lock.json ]; then
+            npm ci
+          fi
+
+      - name: Build Android development APK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          eas build \
+            --local \
+            --platform android \
+            --profile development \
+            --non-interactive \
+            --output ./dist/app.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-dev-build
+          path: dist/app.apk
+          retention-days: 7
