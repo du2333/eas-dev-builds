@@ -80,4 +80,5 @@ gh workflow run build-android-dev.yml \
 - The EAS profile is fixed to `development`.
 - The Android platform is fixed.
 - The APK artifact is retained for 7 days.
+- GitHub Actions artifacts require a signed-in GitHub user with repository read access.
 - `bun.lockb` is intentionally not supported.
