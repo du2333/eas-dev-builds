@@ -7,6 +7,10 @@ on:
         description: "Expo app repository, in owner/repo format"
         required: true
         type: string
+      ref:
+        description: "Branch, tag, or commit SHA. Leave empty to use the default branch"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -22,6 +26,7 @@ jobs:
         shell: bash
         env:
           APP_REPO: ${{ inputs.app_repo }}
+          APP_REF: ${{ inputs.ref }}
         run: |
           set -euo pipefail
 
@@ -30,10 +35,16 @@ jobs:
             exit 1
           fi
 
+          if [[ -n "$APP_REF" && ! "$APP_REF" =~ ^[A-Za-z0-9_./-]+$ ]]; then
+            echo "ref must be a branch, tag, or commit SHA."
+            exit 1
+          fi
+
       - name: Checkout Expo app
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.app_repo }}
+          ref: ${{ inputs.ref }}
           token: ${{ secrets.APP_REPO_READ_TOKEN }}
           persist-credentials: false
 
