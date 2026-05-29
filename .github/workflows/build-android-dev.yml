@@ -95,6 +95,20 @@ jobs:
         if: ${{ hashFiles('bun.lock') != '' }}
         uses: oven-sh/setup-bun@v2
 
+      - name: Cache Bun packages
+        if: ${{ hashFiles('bun.lock') != '' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
       - name: Install dependencies
         shell: bash
         run: |
@@ -165,4 +179,3 @@ jobs:
           name: android-dev-build
           path: ${{ inputs.app_path }}/dist/*.apk
           retention-days: 7
-          compression-level: 0
