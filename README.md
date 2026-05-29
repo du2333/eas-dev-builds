@@ -11,10 +11,11 @@ Android build button and uploads the APK as a GitHub Actions artifact.
 2. Click `Run workflow`.
 3. Enter an Expo app repository in `owner/repo` format.
 4. Optionally enter a branch, tag, or commit SHA.
-5. The workflow checks out that repository ref, or the default branch if left blank.
-6. It installs dependencies from the committed lockfile.
-7. It runs an EAS local Android development build.
-8. It uploads `dist/app.apk` as an artifact.
+5. Optionally enter the Expo app path inside the repository.
+6. The workflow checks out that repository ref, or the default branch if left blank.
+7. It installs dependencies from the committed root lockfile.
+8. It runs an EAS local Android development build in the app path.
+9. It uploads the APK as an artifact.
 
 ## Required Secrets
 
@@ -83,9 +84,18 @@ gh workflow run build-android-dev.yml \
   -f ref=feature/my-branch
 ```
 
+For a monorepo where the Expo app lives under `apps/mobile`:
+
+```sh
+gh workflow run build-android-dev.yml \
+  -f app_repo=YOUR_NAME/YOUR_MONOREPO \
+  -f app_path=apps/mobile
+```
+
 ## Notes
 
 - The workflow builds the target repository's default branch latest commit unless `ref` is set.
+- Dependencies are installed from the repository root, then EAS runs inside `app_path`.
 - The EAS profile is fixed to `development`.
 - The Android platform is fixed.
 - The APK artifact is retained for 7 days.

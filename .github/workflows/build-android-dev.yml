@@ -11,6 +11,11 @@ on:
         description: "Branch, tag, or commit SHA. Leave empty to use the default branch"
         required: false
         type: string
+      app_path:
+        description: "Path to the Expo app inside the repository"
+        required: false
+        default: "."
+        type: string
 
 permissions:
   contents: read
@@ -27,6 +32,7 @@ jobs:
         env:
           APP_REPO: ${{ inputs.app_repo }}
           APP_REF: ${{ inputs.ref }}
+          APP_PATH: ${{ inputs.app_path }}
         run: |
           set -euo pipefail
 
@@ -40,6 +46,11 @@ jobs:
             exit 1
           fi
 
+          if [[ -z "$APP_PATH" || "$APP_PATH" == /* || "$APP_PATH" == *..* || ! "$APP_PATH" =~ ^[A-Za-z0-9_./-]+$ ]]; then
+            echo "app_path must be a relative path inside the repository."
+            exit 1
+          fi
+
       - name: Checkout Expo app
         uses: actions/checkout@v6
         with:
@@ -47,6 +58,23 @@ jobs:
           ref: ${{ inputs.ref }}
           token: ${{ secrets.APP_REPO_READ_TOKEN }}
           persist-credentials: false
+
+      - name: Validate app path
+        shell: bash
+        env:
+          APP_PATH: ${{ inputs.app_path }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "app_path does not exist: $APP_PATH"
+            exit 1
+          fi
+
+          if [ ! -f "$APP_PATH/package.json" ]; then
+            echo "app_path must contain package.json: $APP_PATH"
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -97,6 +125,7 @@ jobs:
 
       - name: Build Android development APK
         shell: bash
+        working-directory: ${{ inputs.app_path }}
         run: |
           set -euo pipefail
 
@@ -112,6 +141,6 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: android-dev-build
-          path: dist/app.apk
+          path: ${{ inputs.app_path }}/dist/app.apk
           retention-days: 7
           compression-level: 0
