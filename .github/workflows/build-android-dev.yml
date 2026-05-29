@@ -148,8 +148,14 @@ jobs:
           npx expo run:android \
             --device generic \
             --variant debug \
-            --no-bundler \
-            --output ./dist
+            --no-bundler
+
+          find android/app/build/outputs/apk -type f -name "*.apk" -exec cp {} dist/ \;
+
+          if ! compgen -G "dist/*.apk" > /dev/null; then
+            echo "No APK was produced."
+            exit 1
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v6

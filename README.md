@@ -89,7 +89,7 @@ gh workflow run build-android-dev.yml \
 - The workflow builds the target repository's default branch latest commit unless `ref` is set.
 - Dependencies are installed from the repository root, then Expo CLI runs inside `app_path`.
 - `build_env` is for non-secret build-time values. `EXPO_PUBLIC_*` values are bundled into the app.
-- The workflow uses `npx expo run:android --device generic --variant debug --no-bundler --output ./dist`.
+- The workflow uses `npx expo run:android --device generic --variant debug --no-bundler`, then copies produced APKs into `dist`.
 - The Android platform is fixed.
 - The APK artifact is retained for 7 days.
 - GitHub Actions artifacts require a signed-in GitHub user with repository read access.
