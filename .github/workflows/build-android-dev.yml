@@ -145,10 +145,12 @@ jobs:
           fi
 
           mkdir -p dist
-          npx expo run:android \
-            --device generic \
-            --variant debug \
-            --no-bundler
+          if [ ! -d android ]; then
+            npx expo prebuild --platform android --non-interactive
+          fi
+
+          chmod +x android/gradlew
+          android/gradlew -p android assembleDebug
 
           find android/app/build/outputs/apk -type f -name "*.apk" -exec cp {} dist/ \;
 
