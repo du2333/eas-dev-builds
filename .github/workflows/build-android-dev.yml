@@ -95,13 +95,6 @@ jobs:
         if: ${{ hashFiles('bun.lock') != '' }}
         uses: oven-sh/setup-bun@v2
 
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          eas-cache: true
-
       - name: Install dependencies
         shell: bash
         run: |
@@ -135,7 +128,7 @@ jobs:
             npm ci
           fi
 
-      - name: Build Android development APK
+      - name: Build Android debug APK
         shell: bash
         working-directory: ${{ inputs.app_path }}
         env:
@@ -152,17 +145,16 @@ jobs:
           fi
 
           mkdir -p dist
-          eas build \
-            --local \
-            --platform android \
-            --profile development \
-            --non-interactive \
-            --output ./dist/app.apk
+          npx expo run:android \
+            --device generic \
+            --variant debug \
+            --no-bundler \
+            --output ./dist
 
       - name: Upload APK
         uses: actions/upload-artifact@v6
         with:
           name: android-dev-build
-          path: ${{ inputs.app_path }}/dist/app.apk
+          path: ${{ inputs.app_path }}/dist/*.apk
           retention-days: 7
           compression-level: 0

@@ -1,6 +1,6 @@
 # expo-build-runner
 
-Minimal GitHub Actions runner for Android Expo development builds.
+Minimal GitHub Actions runner for Android Expo debug builds.
 
 You write code in your Expo app repository. This repository acts as a manual
 Android build button and uploads the APK as a GitHub Actions artifact.
@@ -15,7 +15,7 @@ Android build button and uploads the APK as a GitHub Actions artifact.
 6. Optionally enter build environment variables as a JSON object.
 7. The workflow checks out that repository ref, or the default branch if left blank.
 8. It installs dependencies from the committed root lockfile.
-9. It runs an EAS local Android development build in the app path.
+9. It runs an Expo CLI Android debug build in the app path.
 10. It uploads the APK as an artifact.
 
 ## Required Secrets
@@ -25,7 +25,6 @@ Add these repository secrets to this runner repository:
 | Secret | Purpose |
 | --- | --- |
 | `APP_REPO_READ_TOKEN` | Fine-grained GitHub PAT with read-only `Contents` access to the Expo app repo. |
-| `EXPO_TOKEN` | Expo access token used by EAS CLI in CI. |
 
 For `APP_REPO_READ_TOKEN`, use a fine-grained personal access token scoped only
 to the app repositories you want to build.
@@ -40,27 +39,11 @@ Each Expo app repo should include:
   - `pnpm-lock.yaml`
   - `yarn.lock`
   - `package-lock.json`
-- `eas.json`
 - `app.json` or `app.config.*`
 
-The workflow expects an EAS build profile named `development`. For APK output,
-the app repo's `eas.json` should set Android `buildType` to `apk`.
-
-Example:
-
-```json
-{
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
-    }
-  }
-}
-```
+For a development client build, the app should include `expo-dev-client`.
+If the app does not have an `android` directory, Expo CLI will generate it with
+prebuild before compiling.
 
 ## Manual Run
 
@@ -104,9 +87,9 @@ gh workflow run build-android-dev.yml \
 ## Notes
 
 - The workflow builds the target repository's default branch latest commit unless `ref` is set.
-- Dependencies are installed from the repository root, then EAS runs inside `app_path`.
+- Dependencies are installed from the repository root, then Expo CLI runs inside `app_path`.
 - `build_env` is for non-secret build-time values. `EXPO_PUBLIC_*` values are bundled into the app.
-- The EAS profile is fixed to `development`.
+- The workflow uses `npx expo run:android --device generic --variant debug --no-bundler --output ./dist`.
 - The Android platform is fixed.
 - The APK artifact is retained for 7 days.
 - GitHub Actions artifacts require a signed-in GitHub user with repository read access.
