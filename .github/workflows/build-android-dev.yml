@@ -16,6 +16,10 @@ on:
         required: false
         default: "."
         type: string
+      build_env:
+        description: "Optional JSON object of build env vars"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -33,6 +37,7 @@ jobs:
           APP_REPO: ${{ inputs.app_repo }}
           APP_REF: ${{ inputs.ref }}
           APP_PATH: ${{ inputs.app_path }}
+          BUILD_ENV: ${{ inputs.build_env }}
         run: |
           set -euo pipefail
 
@@ -49,6 +54,13 @@ jobs:
           if [[ -z "$APP_PATH" || "$APP_PATH" == /* || "$APP_PATH" == *..* || ! "$APP_PATH" =~ ^[A-Za-z0-9_./-]+$ ]]; then
             echo "app_path must be a relative path inside the repository."
             exit 1
+          fi
+
+          if [ -n "$BUILD_ENV" ]; then
+            if ! echo "$BUILD_ENV" | jq -e 'type == "object" and all(keys[]; test("^[A-Za-z_][A-Za-z0-9_]*$")) and all(.[]; type == "string")' > /dev/null; then
+              echo "build_env must be a JSON object with string values and valid environment variable names."
+              exit 1
+            fi
           fi
 
       - name: Checkout Expo app
@@ -126,8 +138,18 @@ jobs:
       - name: Build Android development APK
         shell: bash
         working-directory: ${{ inputs.app_path }}
+        env:
+          BUILD_ENV: ${{ inputs.build_env }}
         run: |
           set -euo pipefail
+
+          if [ -n "$BUILD_ENV" ]; then
+            while IFS= read -r entry; do
+              key=$(echo "$entry" | jq -r '.key')
+              value=$(echo "$entry" | jq -r '.value')
+              export "$key=$value"
+            done < <(echo "$BUILD_ENV" | jq -c 'to_entries[]')
+          fi
 
           mkdir -p dist
           eas build \
